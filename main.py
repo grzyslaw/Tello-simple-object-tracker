@@ -1,8 +1,9 @@
 from djitellopy import Tello
 import cv2
-from tracker import detect_and_mark_red
-from control import adjust_drone_position
-import time
+from color_tracker import detect_and_mark_red
+from drone_controller import DroneController
+
+from config import TUNING_PARAMS
 
 # function to debug color manualy
 # example usage cv2.setMouseCallback("Tracker output", show_hsv_values, hsv_frame)
@@ -11,7 +12,7 @@ def show_hsv_values(event, x, y, flags, param):
         hsv_val = param[y, x]  # row = y, column = x
         print(f"HSV @ ({x},{y}): {hsv_val}")
 
-def main(): 
+def main(should_fly:bool, use_tuning_params:bool): 
     #initialize tello
     drone = Tello()
 
@@ -20,30 +21,25 @@ def main():
     print(f"[INFO] drone connected, battery: {drone.get_battery()}%")
     drone.streamon()
 
-    drone.takeoff()
+    if should_fly: drone.takeoff()
 
-    #in case we need to throttle the processing
-    frame_counter = 0
-    process_every_n_frames = 5
+    #controller initialization
+    controller = None
+    if use_tuning_params: controller = DroneController(drone, **TUNING_PARAMS)
+    else: controller = DroneController(drone)
 
     #main loop
     while True:
         frame = drone.get_frame_read().frame
-        frame_counter += 1
-
-        # throttle in case of overloading
-        # if frame_counter % process_every_n_frames == 0:
 
         # detect appropriate object, draw rectangles and get the center to follow
         frame, mask, object_center, object_area, hsv_frame = detect_and_mark_red(frame)
 
         # adjust the drone position
-        adjust_drone_position(drone, frame, object_center, object_area)
+        controller.adjust_position(frame, object_center, object_area)
 
         # Show frame
         cv2.imshow("Tracker output", frame)
-        cv2.imshow("mask", mask)
-        
         cv2.waitKey(1)
 
-main()
+main(True,False)
