@@ -7,7 +7,7 @@ TUNING_PARAMS = {
     'yaw_clip': 90,
     'ud_clip': 60,
     'fb_clip': 30,
-    #deadzones to prevent noise, and to much unnecesary movements
+    #deadzones to prevent overcorrection, and to much unnecesary movements
     'deadzone_x': 30,
     'deadzone_y': 30,
     'deadzone_area': 3000,

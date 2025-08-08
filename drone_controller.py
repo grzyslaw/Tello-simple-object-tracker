@@ -2,17 +2,19 @@ from djitellopy import Tello
 import cv2
 import numpy as np
 import time
+from flight_monitor import FlightMonitor
 
 class DroneController:
-    def __init__(self, drone: Tello, max_height=190,
+    def __init__(self, drone: Tello, monitor:FlightMonitor, max_height=190,
                  yaw_scale=10, ud_scale=8, fb_scale=2000,
                  yaw_clip=90, ud_clip=30, fb_clip=30,
                  deadzone_x=30, deadzone_y=30, deadzone_area=3000,
                  target_ratio=0.20, move_duration=0.05):
         
         self.drone = drone
+        self.monitor = monitor
+        
         self.max_height = max_height
-
         self.yaw_scale = yaw_scale
         self.ud_scale = ud_scale
         self.fb_scale = fb_scale
@@ -68,5 +70,16 @@ class DroneController:
             print("Ceiling reached - blocking upward movement")
             ud = 0
 
-        print(f"Moving: yaw={yaw}, ud={ud}, fb={fb}")
+        #save adjustment data
+        self.monitor.save_flight_data(
+            offset_x=offsets[0],
+            offset_y=offsets[1],
+            offset_area=offsets[2],
+            yaw=yaw,
+            ud=ud,
+            fb=fb,
+            height=height,
+            object_detected=(object_center != (-1,-1))
+        )
+        
         self.move_delta(fb=fb, ud=ud, yaw=yaw, move_duration=self.move_duration)

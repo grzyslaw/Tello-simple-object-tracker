@@ -2,6 +2,7 @@ from djitellopy import Tello
 import cv2
 from color_tracker import detect_and_mark_red
 from drone_controller import DroneController
+from flight_monitor import FlightMonitor
 
 from config import TUNING_PARAMS
 
@@ -12,7 +13,7 @@ def show_hsv_values(event, x, y, flags, param):
         hsv_val = param[y, x]  # row = y, column = x
         print(f"HSV @ ({x},{y}): {hsv_val}")
 
-def main(should_fly:bool, use_tuning_params:bool): 
+def main(should_fly:bool, setup_name): 
     #initialize tello
     drone = Tello()
 
@@ -23,23 +24,49 @@ def main(should_fly:bool, use_tuning_params:bool):
 
     if should_fly: drone.takeoff()
 
+    #monitor initialization
+    monitor = FlightMonitor(setup_name)
+    print("[INFO] flight monitor initialized")
+
     #controller initialization
-    controller = None
-    if use_tuning_params: controller = DroneController(drone, **TUNING_PARAMS)
-    else: controller = DroneController(drone)
+    controller = DroneController(drone, monitor, **TUNING_PARAMS)
+    print("[INFO] flight controller initialized")
 
     #main loop
-    while True:
-        frame = drone.get_frame_read().frame
+    try:
+        while True:
+            frame = drone.get_frame_read().frame
 
-        # detect appropriate object, draw rectangles and get the center to follow
-        frame, mask, object_center, object_area, hsv_frame = detect_and_mark_red(frame)
+            # detect appropriate object, draw rectangles and get the center to follow
+            frame, mask, object_center, object_area, hsv_frame = detect_and_mark_red(frame)
 
-        # adjust the drone position
-        controller.adjust_position(frame, object_center, object_area)
+            # adjust the drone position
+            controller.adjust_position(frame, object_center, object_area)
 
-        # Show frame
-        cv2.imshow("Tracker output", frame)
-        cv2.waitKey(1)
+            # Show frame
+            cv2.imshow("Tracker output", frame)
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                print("[INFO] 'q' pressed - exiting loop")
+                break
 
-main(True,False)
+    except KeyboardInterrupt:
+        print("[WARN] KeyboardInterupt - exiting...")
+
+    finally:
+        #land if flying
+        if should_fly:
+            print("[INFO] landing...")
+            drone.land()
+
+        #stop stream and kill OpenCV windows
+        drone.streamoff()
+        cv2.destroyAllWindows()
+
+        #save and plot the flight data
+        print("[INFO] generating plots...")
+        monitor.plot_flight_data()
+
+        print("[INFO] Done, all good, signing off...")
+
+main(True,"test_monitor_3")

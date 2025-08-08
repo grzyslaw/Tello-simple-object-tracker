@@ -1,1 +1,3 @@
-./__pycache__
+__pycache__
+flights/*
+!flights/example_flight_monitoring_data/

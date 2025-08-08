@@ -1,0 +1,14 @@
+{
+    "yaw_scale": 10,
+    "ud_scale": 8,
+    "fb_scale": 2000,
+    "yaw_clip": 90,
+    "ud_clip": 60,
+    "fb_clip": 30,
+    "deadzone_x": 30,
+    "deadzone_y": 30,
+    "deadzone_area": 3000,
+    "target_ratio": 0.2,
+    "max_height": 190,
+    "move_duration": 0.05
+}
